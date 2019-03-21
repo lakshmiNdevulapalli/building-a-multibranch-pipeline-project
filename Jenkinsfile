@@ -1,10 +1,35 @@
 pipeline {
-    agent any
-    stages {
-        stage('Build') {
-            steps {
-                sh 'echo "Hello world!"'
-            }
-        }
+  agent {
+    docker {
+      args '-p 3000:3000 -p 5000:5000'
+      image 'node:8.15.1-alpine'
     }
+
+  }
+  stages {
+    stage('Build') {
+      steps {
+        sh 'npm install'
+      }
+    }
+    stage('Test') {
+      steps {
+        sh './jenkins/scripts/test.sh'
+      }
+    }
+    stage('Deliver for development') {
+      when{
+        branch 'development'
+      }
+      steps {
+        sh './jenkins/scripts/deliver-for-development.sh'
+        input message: 'Finished using the website?'
+        sh './jenkins/scripts/kill.sh'
+      }
+    }
+  }
+  environment {
+    HOME = '.'
+    CI = 'true'
+  }
 }
